@@ -91,7 +91,7 @@ public:
 			for (int j = i+1; j < N; j++) {
 				r = pow( pow(a[j]->coord_0[0]-a[i]->coord_0[0],2.0) + pow(a[j]->coord_0[1]-a[i]->coord_0[1],2.0) + pow(a[j]->coord_0[2]-a[i]->coord_0[2],2.0),0.5); // distance between atoms
 				if (r  < r_kr){
-					k = epsilon*(2*pow(sigma/r,12) - pow(sigma/r, 6))/r/r/mass/scale/1000000; // F/r
+					k = epsilon*(2*pow(sigma/r,12) - pow(sigma/r, 6))/r/r/mass/scale/10000000; // F/r
 					
 					for (int l = 0; l < 3; l++) {
 						acceleration = k*(a[i]->coord_0[l] - a[j]->coord_0[l]);
@@ -110,9 +110,17 @@ public:
 			for (int l = 0; l < 3; l++) {
 				x[l] = 2*a[i]->coord_0[l] - a[i]->coord_p[l]+a[i]->accel[l]*dtime*dtime; //collect new coordinate
 				int k = 0;
-				if (x[l] < 0) x[l] = -x[l];
-				if (int(x[l]) % 2) x[l] = 1 - (x[l] - int(x[l]));
-				else x[l] -= int(x[l]); /*
+				if (x[l] < 0) {
+					x[l] = -x[l];
+					a[i]->coord_0[l] = - a[i]->coord_0[l];
+				}
+				if (x[l] > 1) {
+					x[l] = 2 - x[l];
+					a[i]->coord_0[l] = 2 - a[i]->coord_0[l];
+				}	
+				//if (int(x[l]) % 2) x[l] = 1 - (x[l] - int(x[l]));
+				//else x[l] -= int(x[l]); 
+				/*
 				if (x[l] < 0) x[l] = - x[l];
 				while (x[l] > 1){
 					k ++;
@@ -264,11 +272,11 @@ int main(int argc, char* argv[]){
 	}
 */
 	int a = 10;
-	double scale = 10*3.6;
+	double scale = 10*5.6;
 	Sys_atom *argon = new Sys_atom(a, a, a, sigma_Ar, epsilon_Ar, mass_Ar, dtime, scale);
 	
 	int step = 0;
-	int maxstep = 2000;
+	int maxstep = 5000;
 	int percentage = 0;
 	while (step <= maxstep){
 		if (step % 100) argon->displace(0, foutput, step);
