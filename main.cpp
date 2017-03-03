@@ -41,7 +41,7 @@ public:
 
 	Atom **a = new Atom* [N];	
 	double sigma;
-	double epsilon;
+	double epsilon; 
 	double mass;
 	int dtime;
 	double scale;
@@ -52,7 +52,6 @@ public:
 		scale = scale_get;
 		sigma = sigma_get/scale;
 		epsilon = epsilon_get*24*1.38*6.022/scale;
-
 		mass = mass_get;
 		dtime = dtime_get;
 		printf("epsilon = %lf\n", epsilon);
@@ -95,9 +94,9 @@ public:
 					
 					for (int l = 0; l < 3; l++) {
 						acceleration = k*(a[i]->coord_0[l] - a[j]->coord_0[l]);
-						a[i]->accel[l] += acceleration;
+						a[i]->accel[l] -= acceleration;
 						//fprintf(foutput,"[%d,%d] accel= %lf,\t r = %lf, \t time = %d, \t [a,b] = [%lf, %lf]\n", i,j,  a[i]->accel[l], r, time, a[i]->coord_0[l], a[j]->coord_0[l]);
-						a[j]->accel[l] -= acceleration;
+						a[j]->accel[l] += acceleration;
 					}
 
 				}
@@ -140,34 +139,34 @@ public:
 		}
 		return 0;
 	}
-/*
-	int energy_collect(const int tag_energy, FILE* fenergy)
+
+	int energy_collect(FILE* fenergy, const int time)
 		//collect Energy quantity
 		{
-			E = 0;
-			for (int i = 0; i < nplanet; i++){
-				E += 2.985*sun_system[i]->mass*(pow(sun_system[i]->coord_0[0]-sun_system[i]->coord_p[0],2.0)+ pow(sun_system[i]->coord_0[1]-sun_system[i]->coord_p[1],2.0) )/pow(dtime,2.0); // *E30
-				for (int j = i+1; j < nplanet; j++) {
-					E -= 2377248.03/pow(pow(sun_system[j]->coord_0[0]-sun_system[i]->coord_0[0],2.0)+ pow(sun_system[j]->coord_0[1]-sun_system[i]->coord_0[1],2.0),0.5)*sun_system[j]->mass*sun_system[i]->mass;
-				}
+		E = 0;
+		double r;
+		for (int i = 0; i < N; i++){
+			E += mass*(pow(a[i]->coord_0[0]-a[i]->coord_p[0],2.0) + pow(a[i]->coord_0[1]-a[i]->coord_p[1],2.0) + pow(a[i]->coord_0[2]-a[i]->coord_p[2],2.0))/pow(dtime,2.0)*1000; // *
+			for (int j = i+1; j < N; j++) {
+				r = pow( pow(a[j]->coord_0[0]-a[i]->coord_0[0],2.0) + pow(a[j]->coord_0[1]-a[i]->coord_0[1],2.0) + pow(a[j]->coord_0[2]-a[i]->coord_0[2],2.0),0.5); // distance between atoms
+				//if (r  < r_kr){
+					E-= epsilon/36.132*scale*(pow(sigma/r,12) - pow(sigma/r, 6))/10000000; // F/r	
+			//	}
 			}
-			now_energy += step_energy;
-
-			fprintf(fenergy, "%lf\t%d\n", E, time);
-
-			if ( (E_max == 0) || (E_max < E) ) E_max = E;
-			if ( (E_min == 0) || (E_min > E) ) E_min = E;
 		}
-		if (100.0*time/finish_time > percentage){
-			printf("%d %% \n", percentage);
-			percentage += 5;
-		}
+		
+		fprintf(fenergy, "%lf\t%d\n", E, time);
+
+		if ( (E_max == 0) || (E_max < E) ) E_max = E;
+		if ( (E_min == 0) || (E_min > E) ) E_min = E;
+		
 		//printf("Make one step %d\n",  time);
 
-		time += dtime;
-	} */
+		return 0;
+	}
 	
 };
+
 int main(int argc, char* argv[]){
 	FILE *finput, *foutput, *fenergy;
 
@@ -185,7 +184,7 @@ int main(int argc, char* argv[]){
 		}
 	}*/
 
-	if ((foutput = fopen("output.txt", "w") ) == 0) { 
+	if ((foutput = fopen("output_2.txt", "w") ) == 0) { 
 			fprintf(stderr, "Error! Can't create output_photo file!\n");
 			return 0;
 	}
@@ -239,11 +238,11 @@ int main(int argc, char* argv[]){
 		return 0;
 	}
 */
-	/*
+	
 	// dependense Energy by time
 
 	char *name_file = new char [100];
-	sprintf(name_file, "energy_by_time(%d).txt", dtime);
+	sprintf(name_file, "energy_by_time.txt", dtime);
 
 	if ( (fenergy = fopen(name_file, "w")) == 0) { 
 		fprintf(stderr, "Error! Can't create energy file!\n");
@@ -252,35 +251,23 @@ int main(int argc, char* argv[]){
 	delete[] name_file;
 	fprintf(fenergy, "E\ttime\n");
 
-	char name[MAXNAME];
-	double coord[2], mass, speed;
-	Planet **sun_system = new Planet* [nplanet]; //create massive of class planet
-	for (int i = 0; i < nplanet; i++){
-		fscanf(finput, "%s %lf %lf %lf %lf", name, &mass, &coord[0], &coord[1], &speed);
-		sun_system[i] = new Planet(name, mass, coord, speed);
-	}
 
-	//for (int i = 0; i < nplanet; i++) sun_system[i]->print(stdout);
-	int time = 0;
-	int now_photo = 0;
-	int now_energy = 0;
-	int percentage = 0;
-
-	if (plot == 0) {
-		finish_time = max_energy_time;
-		now_photo = finish_time;
-	}
-*/
 	int a = 10;
-	double scale = 10*5.6;
+	double scale = 10*6;
 	Sys_atom *argon = new Sys_atom(a, a, a, sigma_Ar, epsilon_Ar, mass_Ar, dtime, scale);
 	
 	int step = 0;
 	int maxstep = 5000;
+	int photo_step = 20;
+	int max_energy = 2000;
+	int energy_step = 10;
 	int percentage = 0;
-	while (step <= maxstep){
-		if (step % 100) argon->displace(0, foutput, step);
-		else argon->displace(1, foutput, step);
+
+	while (step <= max_energy){
+		if (step % photo_step) argon->displace(0, foutput, step);
+		else argon->displace(0, foutput, step);
+		if ((!(step % energy_step)) && (step <= max_energy)) argon->energy_collect(fenergy, step);
+
 		step++;
 		if (100.0*step/maxstep > percentage){
 			printf("%d %% \n", percentage);

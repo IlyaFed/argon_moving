@@ -1,0 +1,4 @@
+set terminal png
+set output "graph.png"
+
+plot "energy_by_time.txt" u 2:1 pt 6

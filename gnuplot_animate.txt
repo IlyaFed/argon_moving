@@ -1,9 +1,9 @@
-set terminal gif animate delay 50
+set terminal gif animate delay 10
 set output "graph.gif"
 set xrange[0:1]
 set yrange[0:1]
 set zrange[0:1]
 
-do for [i=0:20]{
-	splot "output.txt" u ($5 == i*100 ? $2 : 1/0):3:4 pt 6
+do for [i=0:250]{
+	splot "output.txt" u ($5 == i*20 ? $2 : 1/0):3:4 pt 6
 }
