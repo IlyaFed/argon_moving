@@ -186,7 +186,7 @@ public:
 		E += T;
 		
 		T = 2.0/3/1.23e-23*T;
-		printf("Everything ok\n");
+	//	printf("Everything ok\n");
 		fprintf(fenergy, "%lf\t%d %lf\n", E, time, T);
 
 		if ( (E_max == 0) || (E_max < E) ) E_max = E;
