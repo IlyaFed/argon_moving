@@ -1,5 +1,7 @@
 // ./a.out dtime max_photo photo_step max_energy energy_step wall r_kr
 #include <stdlib.h>
+#include <iostream>
+#include <fstream>
 #include <string>
 #include <string.h>
 #include <stdio.h>
@@ -15,7 +17,7 @@ double sigma_Ar = 3.405*1e-10; //A
 double epsilon_Ar = 119.8*1.23e-23; // *k_Bol
 //
 
-double E;
+
 double E_max = 0;
 double E_min = 0;
 
@@ -38,9 +40,9 @@ public:
 		energy_step = atoi(argv[5]);
 		wall = atoi(argv[6])*1.0e-10;
 		r_kr = atoi(argv[7]);
-		printf("dtime = %e \n", dtime);
+		cout << "dtime = " << dtime << endl;
 	} else {
-		fprintf(stderr, "Not enought arguments!\n");
+		cerr << "Not enought arguments!" << endl;
 	}
 	}
 };
@@ -54,10 +56,7 @@ public:
 		for( int i = 0; i < 3; i++) coord_p[i] = coord_0[i]-displace[i]; 
 	}
 	string print(){
-		char buf[100];
-		sprintf(buf, "%lf \t %lf \t %lf", coord_0[0]*1e10, coord_0[1]*1e10, coord_0[2]*1e10);
-		string string_planet = buf;
-		return string_planet;
+		return to_string(coord_0[0]*1e10) + "\t" + to_string(coord_0[1]*1e10) + "\t" + to_string(coord_0[2]*1e10);
 	}
 };
 
@@ -65,20 +64,23 @@ public:
 class Sys_atom
 {	
 public:
-
+	double E, T, r;
 	Atom **a = new Atom* [N];	
 	double sigma;
 	double epsilon; 
 	double mass;
 	double dtime;
 	double wall[3];
+	double a_r;
+	double acceleration;
+	double x[3];
 
 	double r_kr; //max rad of interraction
 
 	Sys_atom(const double* wall_get, int* number_of_atom, const double sigma_get, const double epsilon_get, const double mass_get, const double dtime_get, const double r_kr_get ){
 		for (int l = 0; l < 3; l++) {
 			wall[l] = wall_get[l];
-			printf("wall: %e\n", wall[l]);
+			cout << "wall: " << wall[l] << endl;
 		}
 		sigma = sigma_get;
 		epsilon = epsilon_get;
@@ -104,24 +106,21 @@ public:
 			}
 		}
 		if (k == N){
-			fprintf(stderr, "initial complete!\n");
+			cerr << "initial complete!" << endl;
 		} else {
-			fprintf(stderr, "initial fail!\n");
+			cerr << "initial fail!" << endl;
 		}
 	}
 	~Sys_atom(){
 		for (int k = 0; k < N; k++) delete[] a[k];
 		delete[] a;
-		fprintf(stderr, "Memory clear!\n");
+		cerr << "Memory clear!" << endl;
 	}
 
-	int displace(const int tag_photo, FILE* foutput, const int time){
+	int displace(const int tag_photo, ofstream &foutput, const int time){
 		//acceleration collect
 		for (int i = 0; i < N; i++)  for (int l = 0; l < 3; l++) a[i]->accel[l] = 0;
 
-		double r;
-		double a_r;
-		double acceleration;
 		for (int i = 0; i < N-1; i++) {
 			for (int j = i+1; j < N; j++) {
 				r = pow( pow(a[j]->coord_0[0]-a[i]->coord_0[0],2.0) + pow(a[j]->coord_0[1]-a[i]->coord_0[1],2.0) + pow(a[j]->coord_0[2]-a[i]->coord_0[2],2.0),0.5); // distance between atoms
@@ -141,7 +140,6 @@ public:
 			}
 		}
 		//make displacement
-		double x[3];
 		
 		for (int i = 0; i < N; i ++) {
 			for (int l = 0; l < 3; l++) {
@@ -158,7 +156,7 @@ public:
 			}
 			
 			if (tag_photo ){
-				fprintf(foutput, "%d %s \t %d \n", i, a[i]->print().c_str(), time);
+				foutput << a[i]->print() << time << endl;
 			}
 			for (int l = 0; l < 3; l++) {
 				a[i]->coord_p[l] = a[i]->coord_0[l];
@@ -168,12 +166,11 @@ public:
 		return 0;
 	}
 
-	int energy_collect(FILE* fp, const int time)
+	int energy_collect( ofstream &fenergy, const int time)
 		//collect Energy quantity
 		{
 		E = 0;
-		double T = 0.0;
-		double r;
+		T = 0.0;
 		for (int i = 0; i < N; i++){
 			T += mass*(pow(a[i]->coord_0[0]-a[i]->coord_p[0],2.0) + pow(a[i]->coord_0[1]-a[i]->coord_p[1],2.0) + pow(a[i]->coord_0[2]-a[i]->coord_p[2],2.0))/pow(dtime,2.0); // *
 			for (int j = i+1; j < N; j++) {
@@ -186,41 +183,32 @@ public:
 		E += T;
 		
 		T = 2.0/3/1.23e-23*T/N;
-		fprintf(stdout, "%e \t %d %lf\n", E, time, T);
+	//	fprintf(stdout, "%e \t %d %lf\n", E, time, T);
+		fenergy << E << "\t" << T << "\t" << time << endl;
+		if (time > 8000) {
 			if ( (E_max == 0) || (E_max < E) ) E_max = E;
-		if ( (E_min == 0) || (E_min > E) ) E_min = E;
-
+			if ( (E_min == 0) || (E_min > E) ) E_min = E;
+		}
 		return 0;
 	}
 	
 };
 
 int main(int argc, char* argv[]){
-	FILE *foutput;
-	FILE *fenergy;
+	ofstream foutput, fenergy;
+
 
 
 	zero_cond initial(argc, argv); // collect zero conditions
 
-	if (((foutput = fopen("output_photo.txt", "w") ) == 0)) {// initial.max_photo && 
-		fprintf(stderr, "Error! Can't create output_photo file!\n");
-		return 1;
-	}
-
-
-	
+	if (initial.max_photo) foutput.open("output_photo.txt");
 	// dependense Energy by time
 
 	char *name_file = new char [100];
 	sprintf(name_file, "energy_by_time(%d).txt", int(initial.dtime*1e16));
 
-	/*if (((fenergy = fopen(name_file, "w")) == 0)) { //initial.max_energy &&  
-		fprintf(stderr, "Error! Can't create energy file!\n");
-		return 1;
-	}*/
-	fenergy = fopen("one.txt", "w");
+	if (initial.max_energy) fenergy.open(name_file);
 	delete[] name_file;
-	fprintf(foutput, "blabasdf\n");
 	//start
 	double wall[3] = {initial.wall, initial.wall, initial.wall};
 
@@ -237,7 +225,7 @@ int main(int argc, char* argv[]){
 	while (step <= max_step){
 		if ( initial.max_photo && (!(step % initial.photo_step)) && (step <= initial.max_photo)) argon->displace(1, foutput, step);
 		else argon->displace(0, foutput, step);
-		if ( initial.max_energy && (!(step % initial.energy_step)) && (step <= initial.max_energy)) argon->energy_collect(foutput, step);
+		if ( initial.max_energy && (!(step % initial.energy_step)) && (step <= initial.max_energy)) argon->energy_collect(fenergy, step);
 
 		step++;
 		if (100.0*step/max_step > percentage){
@@ -252,8 +240,12 @@ int main(int argc, char* argv[]){
 	fclose(energy_fluct);
 */
 
-	fclose(foutput);
-	fclose(fenergy);
+	foutput.close();
+	fenergy.close();
+	ofstream ffluct; //fluct of energy
+	if (initial.max_energy) ffluct.open("energy_fluct.txt", ios::app);
+	ffluct << initial.dtime << "\t" << E_max-E_min << endl;
 	delete argon;
+	cerr << "Everything ok!\n Finish!" << endl;
 	return 0;
 }
