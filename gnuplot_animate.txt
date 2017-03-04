@@ -1,9 +1,11 @@
-set terminal gif animate delay 10
+#!/bin/sh
+set terminal gif animate delay 5
 set output "graph.gif"
-set xrange[0:6]
-set yrange[0:6]
-set zrange[0:6]
+set xrange[0:60]
+set yrange[0:60]
+set zrange[0:60]
 
-do for [i=0:10]{
+do for [i=0:151]{
 	splot "output_photo.txt" u ($5 == i*100 ? $2 : 1/0):3:4 pt 6
+#	set title "blabla"
 }
