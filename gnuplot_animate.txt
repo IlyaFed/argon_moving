@@ -5,7 +5,7 @@ set xrange[0:60]
 set yrange[0:60]
 set zrange[0:60]
 
-do for [i=0:151]{
-	splot "output_photo.txt" u ($5 == i*100 ? $2 : 1/0):3:4 pt 6
+do for [i=0:200]{
+	splot "term/output_photo.txt" u ($5 == i*100 ? $2 : 1/0):3:4 pt 6
 #	set title "blabla"
 }

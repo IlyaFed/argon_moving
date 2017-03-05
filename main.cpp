@@ -1,12 +1,11 @@
 // ./a.out dtime max_photo photo_step max_energy energy_step wall r_kr
-#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <string.h>
-#include <stdio.h>
 #include <cmath>
+
 #define MAXNAME 10
+#define GIST_STEPS 100
 
 using namespace std;
 
@@ -29,10 +28,10 @@ public:
 	//double N_part = 1000;
 	double dtime;
 	double wall;
-	int max_photo, photo_step, max_energy, energy_step, r_kr;
+	int max_photo, photo_step, max_energy, energy_step, r_kr, range;
 
 	zero_cond(const int argc, char* argv[]){
-		if (argc > 7) {
+		if (argc > 8) {
 		dtime = atoi(argv[1])*1.0e-16;
 		max_photo = atoi(argv[2]);
 		photo_step = atoi(argv[3]);
@@ -40,6 +39,7 @@ public:
 		energy_step = atoi(argv[5]);
 		wall = atoi(argv[6])*1.0e-10;
 		r_kr = atoi(argv[7]);
+		range = atoi(argv[8]);
 		cout << "dtime = " << dtime << endl;
 	} else {
 		cerr << "Not enought arguments!" << endl;
@@ -89,7 +89,7 @@ public:
 		r_kr = r_kr_get;
 		printf("r_kr = %e\n", r_kr );
 		//N = (int) aa*b*c;
-		//*a = new Atom* [N]; //create massive of atoms
+	//	*a = new Atom* [N]; //create massive of atoms
 		double x[3];
 		double v[3] = {0, 0, 0}; //initial velocity
 		double steps[3];
@@ -166,7 +166,7 @@ public:
 		return 0;
 	}
 
-	int energy_collect( ofstream &fenergy, const int time)
+	int energy_collect( ofstream &fenergy, const int time, const bool fluct_flag)
 		//collect Energy quantity
 		{
 		E = 0;
@@ -185,34 +185,55 @@ public:
 		T = 2.0/3/1.23e-23*T/N;
 	//	fprintf(stdout, "%e \t %d %lf\n", E, time, T);
 		fenergy << E << "\t" << T << "\t" << time << endl;
-		if (time > 8000) {
+		if (fluct_flag) {
 			if ( (E_max == 0) || (E_max < E) ) E_max = E;
 			if ( (E_min == 0) || (E_min > E) ) E_min = E;
 		}
 		return 0;
 	}
+
+	int g_r(double* mass){
+		//acceleration collect
+		double max_len = wall[0];// pow( pow(wall[0],2.0) + pow(wall[0],2.0) + pow(wall[0],2.0),0.5);
+
+		for (int i = 0; i < N-1; i++) {
+			for (int j = i+1; j < N; j++) {
+				r = pow( pow(a[j]->coord_0[0]-a[i]->coord_0[0],2.0) + pow(a[j]->coord_0[1]-a[i]->coord_0[1],2.0) + pow(a[j]->coord_0[2]-a[i]->coord_0[2],2.0),0.5); // distance between atoms
+				mass[int(r/max_len*GIST_STEPS)] += pow(max_len,3)/N/4/3.14/pow(r,2)*1e10;
+			}
+			
+		}
+		//for (int i = 0; i < GIST_STEPS; i++) mass[i] = mass[i]/pow(i,2);
+
+		return 0;
+		}
+		
+
 	
 };
 
 int main(int argc, char* argv[]){
 	ofstream foutput, fenergy;
 
-
+	//create g(r)
+	double g_r[GIST_STEPS];
+	for (int i = 0; i < GIST_STEPS; i++) g_r[i] = 0;
+	//
 
 	zero_cond initial(argc, argv); // collect zero conditions
 
-	if (initial.max_photo) foutput.open("output_photo.txt");
+	if (initial.max_photo) foutput.open("term/output_photo.txt");
 	// dependense Energy by time
 
-	char *name_file = new char [100];
-	sprintf(name_file, "energy_by_time(%d).txt", int(initial.dtime*1e16));
+	string name_file = "term/energy_by_time("+to_string(int(initial.dtime*1e16))+","+to_string(int(initial.r_kr))+","+to_string(int(initial.wall*1e10))+").txt" ;
 
-	if (initial.max_energy) fenergy.open(name_file);
-	delete[] name_file;
+	if (initial.max_energy) fenergy.open(name_file.c_str());
+
 	//start
 	double wall[3] = {initial.wall, initial.wall, initial.wall};
+	N = pow(initial.range,3);
+	int number_of_atom[3] = {initial.range, initial.range, initial.range};
 
-	int number_of_atom[3] = {10,10,10};
 	Sys_atom *argon = new Sys_atom(wall, number_of_atom, sigma_Ar, epsilon_Ar, mass_Ar, initial.dtime, initial.r_kr*sigma_Ar);
 	
 	
@@ -225,13 +246,18 @@ int main(int argc, char* argv[]){
 	while (step <= max_step){
 		if ( initial.max_photo && (!(step % initial.photo_step)) && (step <= initial.max_photo)) argon->displace(1, foutput, step);
 		else argon->displace(0, foutput, step);
-		if ( initial.max_energy && (!(step % initial.energy_step)) && (step <= initial.max_energy)) argon->energy_collect(fenergy, step);
+		if ( initial.max_energy && (!(step % initial.energy_step)) && (step <= initial.max_energy)) if (max_step-step > 10) argon->energy_collect(fenergy, step, 0);
+			else argon->energy_collect(fenergy, step, 1);
 
-		step++;
+		if (step == max_step) argon->g_r(g_r);
+
 		if (100.0*step/max_step > percentage){
 			printf("%d %% \n", percentage);
 			percentage += 5;
 		}
+
+
+		step++;
 	}
 /*
 	FILE *energy_fluct;
@@ -242,9 +268,20 @@ int main(int argc, char* argv[]){
 
 	foutput.close();
 	fenergy.close();
+	
+	//write fluctuation of energy
 	ofstream ffluct; //fluct of energy
-	if (initial.max_energy) ffluct.open("energy_fluct.txt", ios::app);
+	if (initial.max_energy) ffluct.open("term/energy_fluct.txt", ios::app);
 	ffluct << initial.dtime << "\t" << E_max-E_min << endl;
+	ffluct.close();
+
+	//write g(r)
+	ofstream g_rfile;
+	name_file = "term/g(r)_("+to_string(int(initial.dtime*1e16))+","+to_string(int(initial.r_kr))+","+to_string(int(initial.wall*1e10))+").txt";
+	g_rfile.open(name_file.c_str());
+	for (int i = 0; i < GIST_STEPS; i++) g_rfile <<  i << "\t" << g_r[i] << endl;
+	g_rfile.close();
+
 	delete argon;
 	cerr << "Everything ok!\n Finish!" << endl;
 	return 0;
