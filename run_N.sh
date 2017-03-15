@@ -15,17 +15,17 @@ mkdir -p all/N_inf/wall_60
 step=5
 while [ $step -le 20 ]
 do
-	mkdir -p term
-	mkdir -p image
+	mkdir -p term_dtime
+	mkdir -p image_dtime
 	# ./argon_moving dtime max_photo photo_step max_energy energy_step wall r_kr (N)^{1/3}
-	./argon_moving 100 20000 100 20000 50 60 8 "$step" 3>term/log.txt
+	./argon_moving 100 20000 100 20000 50 60 8 "$step" 3>term_dtime/log.txt
 	gnuplot state_plot.txt
 	gnuplot animate_plot.txt
 
 	mkdir -p all/N_inf/wall_60/N_"$step"
 
-	mv  image all/N_inf/wall_60/N_"$step"/
-	mv  term all/N_inf/wall_60/N_"$step"/
+	mv  image_dtime all/N_inf/wall_60/N_"$step"/image_dtime
+	mv  term_dtime all/N_inf/wall_60/N_"$step"/term_dtime
 	
 	let step=$step+5
 done
@@ -35,17 +35,17 @@ mkdir -p all/N_inf/wall_120
 step=5
 while [ $step -le 20 ]
 do
-	mkdir -p term
-	mkdir -p image
+	mkdir -p term_dtime
+	mkdir -p image_dtime
 	# ./argon_moving dtime max_photo photo_step max_energy energy_step wall r_kr (N)^{1/3}
-	./argon_moving 100 20000 100 20000 50 120 8 "$step" 3>term/log.txt
+	./argon_moving 100 20000 100 20000 50 120 8 "$step" 3>term_dtime/log.txt
 	gnuplot state_plot.txt
 	gnuplot animate_plot.txt
 
 	mkdir -p all/N_inf/wall_120/N_"$step"
 
-	mv  image all/N_inf/wall_120/N_"$step"/
-	mv  term all/N_inf/wall_120/N_"$step"/
+	mv  image_dtime all/N_inf/wall_120/N_"$step"/image_dtime
+	mv  term_dtime all/N_inf/wall_120/N_"$step"/term_dtime
 	
 	let step=$step+5
 done
