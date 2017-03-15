@@ -322,7 +322,7 @@ int main(int argc, char* argv[]){
 		if (step == max_step) argon->state(g_r, v, &T, &P, &MSD, &VC);
 
 		if (100.0*step/max_step >= percentage){
-			printf("%d %% \n", percentage);
+			cerr << percentage << endl;
 			percentage += 5;
 		}
 
