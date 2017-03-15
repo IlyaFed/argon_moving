@@ -1,4 +1,0 @@
-set terminal png
-set output "image/energy_fluct.png"
-
-plot "term/energy_fluct.txt" u 1:2 pt 6

@@ -1,9 +1,0 @@
-set terminal png
-set output "image/energy_by_time.png"
-
-plot "term/energy_by_time.txt" u 3:2 pt 6
-
-set terminal png
-set output "image/g(r).png"
-
-plot "term/g(r).txt" u 1:2 pt 6
