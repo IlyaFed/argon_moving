@@ -41,6 +41,7 @@ public:
 		energy_step = atoi(argv[5]);
 		wall = atoi(argv[6])*1.0e-10;
 		r_kr = atoi(argv[7]);
+		r_kr = min(r_kr, int(wall/sigma_Ar/2));
 		range = atoi(argv[8]);
 		cout << "dtime = " << dtime << endl;
 	} else {
@@ -54,10 +55,13 @@ class Atom {
 public:
 	double coord_p[3], coord_0[3], coord_initial[3]; // dynamic quantity in m
 	double accel[3], velocity_initial[3];
+	int flag;
 	Atom(const double* coord_of, const double* displace){
 		for( int l = 0; l < 3; l++) {
 			coord_0[l] = coord_of[l]; 
 			coord_p[l] = coord_0[l]-displace[l]; 
+			flag = 1;
+			set_initial();
 		}
 	}
 
@@ -77,7 +81,7 @@ public:
 class Sys_atom
 {	
 public:
-	double E, T, r;
+	double E, T, P, r;
 	Atom **a = new Atom* [N];	
 	double sigma;
 	double epsilon; 
@@ -103,29 +107,38 @@ public:
 		mass = mass_get;
 		dtime = dtime_get;
 		r_kr = r_kr_get;
-		printf("r_kr = %e\n", r_kr );
 		//N = (int) aa*b*c;
 	//	*a = new Atom* [N]; //create massive of atoms
-		x[3];
 		double v[3] = {0, 0, 0}; //initial velocity
 		double steps[3];
 		for (int l = 0; l < 3; l++) steps[l] = wall[l]/number_of_atom[l];
 
 
 		k = 0; //counter of atom
-		for (x[0] = steps[0]/2; x[0] < wall[0]; x[0] += steps[0]){
+		for (x[0] = steps[0]/2; x[0] < wall[0]/2; x[0] += steps[0]){
 			for (x[1] = steps[1]/2; x[1] < wall[1]; x[1] += steps[1]){
 				for (x[2] = steps[2]/2; x[2] < wall[2]; x[2] += steps[2]){
-					for (int l = 0; l < 3; l++) x_rand[l] = x[l] + (1.0*rand()/RAND_MAX - 0.5)*steps[l]/5;
+
+					//too mach for save sum impuls = 0
+					for (int l = 0; l < 3; l++) v[l] = (1.0*rand()/RAND_MAX - 0.5)*steps[l]/2000;
+					a[k] = new Atom(x,v);
+					if (k == 0) a[k]->flag = 3;
+					k++;
+					for (int l = 0; l < 3; l++) {
+						v[l] = -v[l];
+						x_rand[l] = x[l]; 
+					}
+					x_rand[0] = wall[0] - x[0];
 					a[k] = new Atom(x_rand,v);
 					k++;
+					//cout << k <<endl;
 				}
 			}
 		}
 		if (k == N){
-			cerr << "initial complete!" << endl;
+			cout << "initial complete!" << endl;
 		} else {
-			cerr << "initial fail!" << endl;
+			cout << "initial fail!" << endl;
 		}
 	}
 	~Sys_atom(){
@@ -135,32 +148,32 @@ public:
 	}
 
 	double module(const double a, const double b) {
-		if  (abs(a-b) < abs(a-b-wall[0])) {
-			if (abs(a-b) < abs(a-b+wall[0]))  return a-b;	                                       // TODO make it for all wall
-			else return a-b+wall[0];
+		if  (abs(a-b) < wall[0]/2.0) {
+			return a-b;	                                       // TODO make it for all wall
 		} else { 
-			if (abs(a-b-wall[0]) < abs(a-b+wall[0])) return a-b-wall[0];
-			else return a-b+wall[0];
+			if (a < b) return a-b+wall[0];
+			else return a-b-wall[0];
 		} 
 	}
 
 	int displace(const int tag_photo, ofstream &foutput, const int time){
 		//acceleration collect
-		for (int i = 0; i < N; i++)  for (int l = 0; l < 3; l++) a[i]->accel[l] = 0;
-
+		for (int i = 0; i < N; i++)  {
+			for (int l = 0; l < 3; l++) a[i]->accel[l] = 0;
+			a[i]->flag = 1;
+		}
+		a[0]->flag = 3;
 		for (int i = 0; i < N-1; i++) {
 			for (int j = i+1; j < N; j++) {
 				for (int l = 0; l < 3; l++) x[l] = module(a[i]->coord_0[l], a[j]->coord_0[l]);
 				r = pow( pow(x[0],2.0) + pow(x[1],2.0) + pow(x[2],2.0),0.5); // distance between atoms
 				if (r  < r_kr){
-					a_r = -24.0*epsilon*(2*pow(sigma/r,12.0) - pow(sigma/r, 6.0))/r/r/mass; // F/r
-					
+					a_r = 24.0*epsilon*(2*pow(sigma/r,12.0) - pow(sigma/r, 6.0))/r/r/mass; // F/r/m
+					if (i == 0) a[j]->flag = 2;
 					for (int l = 0; l < 3; l++) {
-						acceleration =  a_r*x[l];
-						//fprintf(foutput, "%d, delta, accel = %e , dtime = %e \n",time, a[i]->accel[l], dtime);
-						
-						a[i]->accel[l] -= acceleration;
-						a[j]->accel[l] += acceleration;
+						acceleration =  a_r*x[l];						
+						a[i]->accel[l] += acceleration;
+						a[j]->accel[l] -= acceleration;
 					}
 
 				}
@@ -185,20 +198,21 @@ public:
 			k++;
 
 			if (tag_photo ){
-				foutput << k << " " << 1  << " " << a[i]->print(wall) << endl;
+				foutput << k << " " << a[i]->flag  << " " << a[i]->print(wall) << endl;
 			}
 			for (int l = 0; l < 3; l++) {
 				a[i]->coord_p[l] = a[i]->coord_0[l];
 				a[i]->coord_0[l] = x[l];
 			}
-
-			if (time == MSD_STEP) for (int i = 0; i < N; i++) a[i]->set_initial();
+			
+			//if (time == MSD_STEP) for (int i = 0; i < N; i++) a[i]->set_initial();
 			MSD = 0;
-			if (time > MSD_STEP) {
+			//if (time > MSD_STEP) {
 				for (int i = 0; i < N; i++) for (int l = 0; l < 3; l ++) VC += (a[i]->coord_0[l]-a[i]->coord_p[l])*a[i]->velocity_initial[l]/dtime;
 				for (int i = 0; i < N; i++) for (int l = 0; l < 3; l ++) MSD+= pow(a[i]->coord_0[l]-a[i]->coord_initial[l],2.0);
 				MSD = MSD/N/6/time/dtime;
-			}
+			//}
+			
 		}
 		return 0;
 	}
@@ -206,7 +220,7 @@ public:
 	int energy_collect( ofstream &fenergy, const int time, const bool fluct_flag)
 		//collect Energy quantity
 		{
-		E = 0;
+		P = 0.0;
 		T = 0.0;
 		for (int i = 0; i < N; i++){
 			T += mass*(pow(a[i]->coord_0[0]-a[i]->coord_p[0],2.0) + pow(a[i]->coord_0[1]-a[i]->coord_p[1],2.0) + pow(a[i]->coord_0[2]-a[i]->coord_p[2],2.0))/pow(dtime,2.0)/2; // *
@@ -214,15 +228,17 @@ public:
 				for (int l = 0; l < 3; l++) x[l] = module(a[i]->coord_0[l], a[j]->coord_0[l]);
 				r = pow( pow(x[0],2.0) + pow(x[1],2.0) + pow(x[2],2.0),0.5); // distance between atoms                             TODO not true
 				//if (r  < r_kr){
-					E += 4*epsilon*(pow(sigma/r,12) - pow(sigma/r, 6)); // F/r	
-			//	}
+					P += 4*epsilon*(pow(sigma/r,12) - pow(sigma/r, 6)); // F/r	
+				//}
 			}
 		}
-		E += T;
+		P = P/N/1.23e-23;
+		T= T/N/1.23e-23;
+		E = (P + T);
 		
-		T = 2.0/3/1.23e-23*T/N;
+		T = 2.0/3*T;
 	
-		fenergy << E << "\t" << T << "\t" << time << "\t" << MSD << "\t" << VC/N/3 << endl;
+		fenergy << time << "\t" << T << "\t" << E << "\t" << MSD << "\t" << VC/N/3 << "\t" << P << endl;
 		if (fluct_flag) {
 			if ( (E_max == 0) || (E_max < E) ) E_max = E;
 			if ( (E_min == 0) || (E_min > E) ) E_min = E;
@@ -245,7 +261,7 @@ public:
 				for (int l = 0; l < 3; l++) x[l] = module(a[i]->coord_0[l], a[j]->coord_0[l]);
 				r = pow( pow(x[0],2.0) + pow(x[1],2.0) + pow(x[2],2.0),0.5); // distance between atoms                             TODO not true
 				if (r < max_len) g[int(r/max_len*GIST_STEPS)] += 1;
-				*P += -24.0*epsilon*(2*pow(sigma/r,12.0) - pow(sigma/r, 6.0)); // F/r
+				*P += 24.0*epsilon*(2*pow(sigma/r,12.0) - pow(sigma/r, 6.0)); // F/r
 			}
 		}
 
@@ -264,6 +280,17 @@ public:
 		return 0;
 	}
 
+	int velocity_reverse() {
+		double temp;
+		for (int i = 0; i < N; i++){
+			for (int l = 0; l < 3; l++){
+				temp = a[i]->coord_p[l];
+				a[i]->coord_p[l] = a[i]->coord_0[l];
+				a[i]->coord_0[l] = temp;
+			}
+		}
+		return 0;
+	}
 		
 
 	
@@ -294,7 +321,7 @@ int main(int argc, char* argv[]){
 	//name_file = "term/date_file("+to_string(int(initial.dtime*1e16))+","+to_string(int(initial.r_kr))+","+to_string(int(initial.wall*1e10))+").txt" ;
 
 	if (initial.max_energy) fenergy.open("term/date_file.txt");
-	fenergy << "# E, J \t T, K \t time, fc \t MSD (Einstein) \t MSD (GREBO-CUBO)" << endl; 
+	fenergy << "#  time, fc \t E, J \t T, K \t MSD (Einstein) \t MSD (GREBO-CUBO) \t P, J" << endl; 
 	//start
 	double wall[3] = {initial.wall, initial.wall, initial.wall};
 	N = pow(initial.range,3);
@@ -313,16 +340,16 @@ int main(int argc, char* argv[]){
 		if ( initial.max_photo && (!(step % initial.photo_step)) && (step <= initial.max_photo)){
 			foutput << "ITEM: TIMESTEP\n" << step << "\nITEM: NUMBER OF ATOMS\n" << N << "\nITEM: BOX BOUNDS pp pp pp\n" << 0e0  << " " << wall[0]*1e10 << "\n" << 0e0  << " "  << wall[1]*1e10 << "\n" << 0e0  << " "  << wall[2]*1e10 << "\nITEM: ATOMS id type xs ys zs" << endl;
 			argon->displace(1, foutput, step);
-			foutput << "\n" << endl;
 		} 
 		else argon->displace(0, foutput, step);
-		if ( initial.max_energy && (!((step+1) % initial.energy_step)) && (step <= initial.max_energy)) if (max_step-step > 10) argon->energy_collect(fenergy, step, 0);
-			else argon->energy_collect(fenergy, step, 1);
+		if ( initial.max_energy && (!((step+1) % initial.energy_step)) && (step <= initial.max_energy)) {if (max_step-step > 10) argon->energy_collect(fenergy, step, 0);}
+		else argon->energy_collect(fenergy, step, 1);
 
 		if (step == max_step) argon->state(g_r, v, &T, &P, &MSD, &VC);
+		//if (step == max_step/2) argon->velocity_reverse();
 
 		if (100.0*step/max_step >= percentage){
-			cerr << percentage << endl;
+			cout << percentage << endl;
 			percentage += 5;
 		}
 

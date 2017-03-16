@@ -1,12 +1,17 @@
 set terminal png
 set output "image/T_t.png"
 
-plot "term/date_file.txt" index 0 u 3:2 pt 6 title "T(t)"
+plot "term/date_file.txt" index 0 u 1:2 pt 6 title "T(t)"
 
 set terminal png
 set output "image/E_t.png"
 
-plot "term/date_file.txt" index 0 u 3:1 pt 6 title "E(t)"
+plot "term/date_file.txt" index 0 u 1:($2+$6/1.0) pt 6 title "E(t)"
+
+set terminal png
+set output "image/P.png"
+
+plot "term/date_file.txt" index 0 u 1:6 pt 6 title "P(t)"
 
 set terminal png
 set output "image/g_r.png"
@@ -19,7 +24,11 @@ set output "image/n_v.png"
 plot "term/date_file.txt" index 2 u 1:2 pt 6 title "n(v)"
 
 set terminal png
-set output "image/msd.png"
+set output "image/msd_einshtein.png"
 
-plot "term/date_file.txt" index 0 u 3:4 pt 6 title "Einshtein",\
-	"term/date_file.txt" index 0 u 3:5 pt 6 title "Grebo"
+plot "term/date_file.txt" index 0 u 1:4 pt 6 title "Einshtein"
+
+set terminal png
+set output "image/msd_grebo.png"
+
+plot "term/date_file.txt" index 0 u 1:5 pt 6 title "Grebo"
