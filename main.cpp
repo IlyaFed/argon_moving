@@ -192,7 +192,7 @@ public:
 				}
 				if (x[l] > wall[l]) {
 					x[l] = x[l] - wall[l];
-					a[i]->coord_0[l] = wall[l] - a[i]->coord_0[l];
+					a[i]->coord_0[l] = a[i]->coord_0[l] - wall[l];
 				}	
 			}
 			k++;

@@ -3,7 +3,7 @@ all:
 	mkdir -p term
 	mkdir -p image
 	# ./argon_moving dtime max_photo photo_step max_energy energy_step wall r_kr (N)^{1/3}
-	./argon_moving 10 100000 100 100000 100 60 8 6 3> term/log.txt
+	./argon_moving 10 100000 100 100000 100 120 8 4 3> term/log.txt
 	gnuplot state_plot.txt
 
 big_run:
@@ -11,7 +11,7 @@ big_run:
 	mkdir -p term
 	mkdir -p image
 	# ./argon_moving dtime max_photo photo_step max_energy energy_step wall r_kr (N)^{1/3}
-	./argon_moving 100 50000 100 50000 100 60 8 4 3> term/log.txt
+	./argon_moving 10 100000 100 100000 100 120 8 4 3> term/log.txt
 	gnuplot state_plot.txt
 
 hard:
