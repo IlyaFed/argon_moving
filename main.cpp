@@ -20,6 +20,7 @@ double epsilon_Ar = 119.8*1.23e-23; // *k_Bol
 
 
 
+int atom_diff(ofstream &rv_file, Sys_atom &one, Sys_atom &two, const int step);
 
 class zero_cond{
 public:
@@ -81,9 +82,12 @@ int main(int argc, char* argv[]){
 	N = initial.range;
 
 	Sys_atom *argon = new Sys_atom(wall, sigma_Ar, epsilon_Ar, mass_Ar, initial.dtime, initial.r_kr, N);
-	
-	
+	Sys_atom *argon_copy = new Sys_atom(*argon);
+	int time_coeff = 2;
+	argon_copy->dtime *= time_coeff;
 
+	//Sys_atom *argon_copy = new Sys_atom(wall, sigma_Ar, epsilon_Ar, mass_Ar, initial.dtime, initial.r_kr, N);
+	
 
 	int step = 0;
 	int percentage = 0;
@@ -91,16 +95,23 @@ int main(int argc, char* argv[]){
 	bool plot = 0;
 	if (initial.max_photo) plot = 1;
 
+	ofstream rv_file;
+	rv_file.open("term/rv_file.txt");
+
 	while (step <= max_step){
 		if ( initial.max_photo && (!(step % initial.photo_step)) && (step <= initial.max_photo)){ 
 			foutput << "ITEM: TIMESTEP\n" << step << "\nITEM: NUMBER OF ATOMS\n" << N << "\nITEM: BOX BOUNDS pp pp pp\n" << 0e0  << " " << wall[0]*1e10 << "\n" << 0e0  << " "  << wall[1]*1e10 << "\n" << 0e0  << " "  << wall[2]*1e10 << "\nITEM: ATOMS id type xs ys zs" << endl;
 			argon->displace(1, foutput, step);
 		} 
-		else argon->displace(0, foutput, step);
-		if ( initial.max_energy && (!((step+1) % initial.energy_step)) && (step <= initial.max_energy)) {if (max_step-step > 10) argon->energy_collect(fenergy, step, 0);}
-		else argon->energy_collect(fenergy, step, 1);
 
-		
+		else {
+			argon->displace(0, foutput, step);
+			if (!(step % time_coeff)) argon_copy->displace(0,foutput, step);
+		}
+		if ( initial.max_energy && (!((step+1) % initial.energy_step)) && (step <= initial.max_energy)) {if (max_step-step > 10) argon->energy_collect(fenergy, step);}
+		else argon->energy_collect(fenergy, step);
+		if (!(step % 50)) atom_diff(rv_file, *argon, *argon_copy, step);
+
 		if (100.0*step/max_step >= percentage){
 			cout << percentage << endl;
 			percentage += 5;
@@ -124,7 +135,7 @@ int main(int argc, char* argv[]){
 	lj_file.close();
 */
 	foutput.close();
-	
+	rv_file.close();
 	/*
 	//write fluctuation of energy
 	ofstream ffluct; //fluct of energy
@@ -148,5 +159,21 @@ int main(int argc, char* argv[]){
 
 	delete argon;
 	cerr << "Everything ok!\n Finish!" << endl;
+	return 0;
+}
+
+
+int atom_diff(ofstream &rv_file, Sys_atom &one, Sys_atom &two, const int step){
+	double diff_r = 0, diff_v = 0;
+	
+	assert(one.N == two.N);
+	for (int i = 0; i < one.N; i++) for (int l = 0; l < 3; l++) {
+		diff_r += pow(one.a[i]->r_coord_0[l] - two.a[i]->r_coord_0[l], 2);
+		diff_v += pow(one.a[i]->velocity[l] - two.a[i]->velocity[l], 2);
+	}
+	diff_r = diff_r/one.N;
+	diff_v = diff_v/one.N;
+
+	rv_file << step << "\t" << diff_r/one.wall[0]/one.wall[0] << "\t" << diff_v/(3*1.23e-23*one.T)*one.mass << endl; 
 	return 0;
 }

@@ -1,18 +1,3 @@
-set terminal gif animate delay 20
-set output "image/n_v.gif"
-set logscale y 10
-set xrange [0:4]
-set yrange [0.1:10]
-
-do for [i=0:98]{
-	plot "term/nv_file.txt" index i u 1:2 w boxes fs solid 0.25 title "n_{el}(v)" ,\
-	"term/nv_file.txt" index i u 1:3 w boxes fs solid 0.5 title "n_{at}(v)"
-}
-
-reset
-
-
-
 set terminal png
 set output "image/g_r.png"
 set boxwidth 0.4 relative
@@ -26,11 +11,10 @@ set output "image/n_v.png"
 set logscale y 10
 set xrange [0:4]
 set yrange [0.1:10]
-plot "term/date_file.txt" index 2 u 1:2 w boxes fs solid 0.25 title "n_el(v)" ,\
-	"term/date_file.txt" index 2 u 1:3 w boxes fs solid 0.5 title "n_at(v)"
+plot "term/nv_file.txt" index 2 u 1:2 w boxes fs solid 0.25 title "n_el(v)" ,\
+	"term/nv_file.txt" index 2 u 1:3 w boxes fs solid 0.5 title "n_at(v)"
 
 reset
-
 
 
 set terminal png
@@ -59,3 +43,14 @@ set output "image/msd_grebo.png"
 
 plot "term/date_file.txt" index 0 u 1:5 pt 6 title "Grebo"
 
+set terminal png
+set output "image/r_t.png"
+set logscale y 10
+
+plot "term/rv_file.txt" u 1:2 pt 6 title "r(t)"
+
+set terminal png
+set output "image/v_t.png"
+set logscale y 10
+
+plot "term/rv_file.txt" u 1:3  pt 6 title "r(t)"

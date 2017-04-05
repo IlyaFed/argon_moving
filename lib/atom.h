@@ -50,6 +50,7 @@ public:
 	double r_kr; //max rad of interraction
 
 	Sys_atom(const double* wall_get, const double sigma_get, const double epsilon_get, const double mass_get, const double dtime_get, const double r_kr_get , const int N_get);
+	Sys_atom(Sys_atom &another);
 	~Sys_atom();
 
 	double module(const double a, const double b);
@@ -58,7 +59,7 @@ public:
 
 	int MSD_collect(const int time);
 
-	int energy_collect( ofstream &fenergy, const int time, const bool fluct_flag);
+	int energy_collect( ofstream &fenergy, const int time);
 
 	int state(double* g, double* v, double* T_get, double* P, double* MSD, double* VC_get);
 
@@ -67,6 +68,8 @@ public:
 	double lj(double rast);
 
 	int print_lj(ofstream &lj_file);
+
+	int write_backup(const char* name);
 };
 
 #endif // __ATOM__

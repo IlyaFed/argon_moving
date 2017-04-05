@@ -100,6 +100,28 @@ Sys_atom::Sys_atom(const double* wall_get, const double sigma_get, const double 
 			assert(0);
 		}
 	}
+
+Sys_atom::Sys_atom(Sys_atom &another){
+		cout << "start_copy" << endl;
+		for (int l = 0; l < 3; l++) {
+			wall[l] = another.wall[l];
+			cout << "wall: " << wall[l] << endl;
+		}
+		N = another.N;
+		a = new Atom* [N];
+		sigma = another.sigma;
+		epsilon = another.epsilon;
+		mass = another.mass;
+		dtime = another.dtime;
+		r_kr = another.r_kr;
+		cout << "r_kr = " << r_kr << endl;
+		double v[3] = {0, 0, 0}; //initial velocity
+		for (int i = 0; i < N; i++){
+			for (int l = 0; l < 3; l++) v[l] = another.a[i]->coord_0[l]-another.a[i]->coord_p[l];
+			a[i] = new Atom(another.a[i]->coord_0, v, another.a[i]->mass);
+		}
+	}
+
 Sys_atom::~Sys_atom(){
 		for (int k = 0; k < N; k++) delete[] a[k];
 		delete[] a;
@@ -203,7 +225,7 @@ int Sys_atom::MSD_collect(const int time){
 		return 0;
 }
 
-int Sys_atom::energy_collect( ofstream &fenergy, const int time, const bool fluct_flag)
+int Sys_atom::energy_collect( ofstream &fenergy, const int time)
 		//collect Energy quantity
 		{
 		P = 0.0;
@@ -285,6 +307,40 @@ int Sys_atom::print_lj(ofstream &lj_file){
 	return 0;
 }
 
+int Sys_atom::write_backup(const char* name){
+	ofstream backup;
+	backup.open(name);
+	backup << N << "\t" << D_msd << "\t" << D_gr << endl; 
+	backup << sigma << "\t" << epsilon << "\t" << mass << "\t" << dtime << "\t" << wall << "\t" << r_kr << endl;
+	for (int i = 0; i < N; i++) {
+		backup << i << "\t" << a[i]->mass << a[i]->flag << a[i]->coord_0[0] << "\t" << a[i]->coord_0[1] << "\t" << a[i]->coord_0[2];
+		backup << "\t" << a[i]->coord_p[0] << "\t" << a[i]->coord_p[1] << "\t" << a[i]->coord_p[2];
+		backup << "\t" << a[i]->r_coord_0[0] << "\t" << a[i]->r_coord_0[1] << "\t" << a[i]->r_coord_0[2];
+		backup << "\t" << a[i]->r_coord_p[0] << "\t" << a[i]->r_coord_p[1] << "\t" << a[i]->r_coord_p[2];
+		backup << "\t" << a[i]->coord_initial[0] << "\t" << a[i]->coord_initial[1] << "\t" << a[i]->coord_initial[2];
+		backup << "\t" << a[i]->velocity_initial[0] << "\t" << a[i]->velocity_initial[1] << "\t" << a[i]->velocity_initial[2];
+		backup << "\t" << a[i]->velocity[0] << "\t" << a[i]->velocity[1] << "\t" << a[i]->velocity[2] << endl;
+	}
+	backup.close();
+	return 0;
+}
 
 
+/*
+int Sys_atom::read_backup(const char* name){
+	backup >> N >> "\t" >> D_msd >> "\t" >> D_gr ;
+	backup >> sigma >> "\t" >> epsilon >> "\t" >> mass >> "\t" >> dtime >> "\t" >> wall >> "\t" >> r_kr ;
+	for (int i = 0; i < N; i++) {
+		backup >> i >> "\t" >> a[i]->mass >> a[i]->type >> a[i]->coord_0[0] >> "\t" >> a[i]->coord_0[1] >> "\t" >> a[i]->coord_0[2];
+		backup >> "\t" >> a[i]->coord_p[0] >> "\t" >> a[i]->coord_p[1] >> "\t" >> a[i]->coord_p[2];
+		backup >> "\t" >> a[i]->r_coord_0[0] >> "\t" >> a[i]->r_coord_0[1] >> "\t" >> a[i]->r_coord_0[2];
+		backup >> "\t" >> a[i]->r_coord_p[0] >> "\t" >> a[i]->r_coord_p[1] >> "\t" >> a[i]->r_coord_p[2];
+		backup >> "\t" >> a[i]->coord_initial[0] >> "\t" >> a[i]->coord_initial[1] >> "\t" >> a[i]->coord_initial[2];
+		backup >> "\t" >> a[i]->velocity_initial[0] >> "\t" >> a[i]->velocity_initial[1] >> "\t" >> a[i]->velocity_initial[2];
+		backup >> "\t" >> a[i]->velocity[0] >> "\t" >> a[i]->velocity[1] >> "\t" >> a[i]->velocity[2];
+	}
+
+	return 0;
+}
+*/
 #endif // __ATOM_CPP__

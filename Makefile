@@ -3,7 +3,7 @@ all:
 	mkdir -p term
 	mkdir -p image
 	# ./argon_moving dtime max_photo photo_step max_energy energy_step wall r_kr N
-	./argon_moving 1 000000 1 1000 100 60 8 32 3> term/log.txt
+	./argon_moving 1 000000 1 500000 100000 60 8 32 3> term/log.txt
 	gnuplot state_plot.txt
 
 clean:
