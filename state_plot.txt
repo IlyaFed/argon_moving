@@ -1,7 +1,42 @@
+set terminal gif animate delay 20
+set output "image/n_v.gif"
+set logscale y 10
+set xrange [0:4]
+set yrange [0.1:10]
+
+do for [i=0:98]{
+	plot "term/nv_file.txt" index i u 1:2 w boxes fs solid 0.25 title "n_{el}(v)" ,\
+	"term/nv_file.txt" index i u 1:3 w boxes fs solid 0.5 title "n_{at}(v)"
+}
+
+reset
+
+
+
+set terminal png
+set output "image/g_r.png"
+set boxwidth 0.4 relative
+
+plot "term/date_file.txt" index 1 u 1:2 w boxes fs solid 0.25 title "g(r)"
+
+reset
+
+set terminal png
+set output "image/n_v.png"
+set logscale y 10
+set xrange [0:4]
+set yrange [0.1:10]
+plot "term/date_file.txt" index 2 u 1:2 w boxes fs solid 0.25 title "n_el(v)" ,\
+	"term/date_file.txt" index 2 u 1:3 w boxes fs solid 0.5 title "n_at(v)"
+
+reset
+
+
+
 set terminal png
 set output "image/T_t.png"
 
-plot "term/date_file.txt" index 0 u  1:2 pt 1 title "T(t)" #($1 < 200000 ? $1: 1/0):($2 < 1000 ? $2: 1/0)   (($1 < 198400) & ($1 > 198340) ? $1: 1/0)
+plot "term/date_file.txt" index 0 u  1:2 pt 1 title "T(t)" 							#($1 < 200000 ? $1: 1/0):($2 < 1000 ? $2: 1/0)   (($1 < 198400) & ($1 > 198340) ? $1: 1/0)
 
 set terminal png
 set output "image/E_t.png"
@@ -14,25 +49,10 @@ set output "image/P_t.png"
 plot "term/date_file.txt" index 0 u 1:6 pt 1 title "P(t)"
 
 set terminal png
-set output "image/F_t.png"
-
-plot "term/date_file.txt" index 0 u 1:7 pt 1 title "F(t)" #($7 > 1E-07 ? $7: 1/0)
-
-set terminal png
-set output "image/g_r.png"
-
-plot "term/date_file.txt" index 1 u 1:2 pt 6 title "g(r)"
-
-set terminal png
-set output "image/n_v.png"
-
-plot "term/date_file.txt" index 2 u 1:2 pt 6 title "n(v)"
-
-set terminal png
 set output "image/msd_einshtein.png"
 
 
-plot "term/date_file.txt" index 0 u 1:(($4*$1)) pt 6 title "Einshtein" # ($1 < 2000 ? ($1) : 1/0)
+plot "term/date_file.txt" index 0 u 1:4 pt 6 title "Einshtein" # ($1 < 2000 ? ($1) : 1/0)
 
 set terminal png
 set output "image/msd_grebo.png"
